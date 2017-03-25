@@ -1,0 +1,21 @@
+package ${type.name.packageName};
+
+#foreach($import in $type.imports)
+import $import.canonicalName;    
+#end
+
+public class ${type.name.name} {
+#foreach($field in $type.fields)
+    private ${field.typeName.name} ${field.name};
+#end
+
+#foreach($field in $type.fields)
+    public ${field.typeName.name} get${StringUtils.capitalizeFirstLetter(${field.name})}() {
+        return ${field.name};
+    }
+
+    public void set${StringUtils.capitalizeFirstLetter(${field.name})}(${field.typeName.name} ${field.name}) {
+        this.${field.name} = ${field.name};
+    }
+#end
+}
