@@ -7,7 +7,7 @@ Lets imagine we have the following type. We want to use model-model(symmetric re
 but we want to make some fields read-only. One of approach is simply ignore it in your code, but it means that you have 
 to always keep in your mind what field you could change and which not. Better approach is to use different types for your
 request and persistence entities. Creating such types and supporting them throughout the life of the project can be quite costly. 
-It will be better if the request types whould update automatically on your persistence type update. 
+It will be better if the request types would update automatically on your persistence type update. 
 
 ```java
 @RequestEntity
