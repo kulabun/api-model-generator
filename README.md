@@ -1,4 +1,4 @@
-# requestentity
+# RequestEntity
 Project presents a set of annotations and annotation processor to generate request-entities from your persistence entities.
 Generated Request Entities are truncated versions of your persistence entities used to limit input from REST API clients.
 
