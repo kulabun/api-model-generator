@@ -1,20 +1,20 @@
-package ${type.name.packageName};
+package ${clazz.name.packageName};
 
-#foreach($import in $type.imports)
-import $import.canonicalName;    
+#foreach($import in $imports)
+import $import;    
 #end
 
-public class ${type.name.name} {
-#foreach($field in $type.fields)
-    private ${field.typeName.name} ${field.name};
+public class ${clazz.name.asStringWithBounds()} {
+#foreach($field in $clazz.fields)
+    private ${field.type.asString()} ${field.name};
 #end
 
-#foreach($field in $type.fields)
-    public ${field.typeName.name} get${StringUtils.capitalizeFirstLetter(${field.name})}() {
+#foreach($field in $clazz.fields)
+    public ${field.type.asString()} get${StringUtils.capitalizeFirstLetter(${field.name})}() {
         return ${field.name};
     }
 
-    public void set${StringUtils.capitalizeFirstLetter(${field.name})}(${field.typeName.name} ${field.name}) {
+    public void set${StringUtils.capitalizeFirstLetter(${field.name})}(${field.type.asString()} ${field.name}) {
         this.${field.name} = ${field.name};
     }
 #end

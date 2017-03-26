@@ -38,9 +38,4 @@ public class ElementUtil {
         PackageElement packageElement = (PackageElement) element.getEnclosingElement();
         return packageElement.getQualifiedName().toString();
     }
-
-    public static String extractCanonicalName(TypeElement element) {
-        TypeElement typeElement = element;
-        return typeElement.getQualifiedName().toString();
-    }
 }

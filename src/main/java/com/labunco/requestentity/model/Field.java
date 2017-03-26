@@ -5,15 +5,15 @@ package com.labunco.requestentity.model;
  * @since 3/25/17
  */
 public class Field {
-    private TypeName typeName;
+    private Type type;
     private String name;
 
-    public TypeName getTypeName() {
-        return typeName;
+    public Type getType() {
+        return type;
     }
 
-    public void setTypeName(TypeName typeName) {
-        this.typeName = typeName;
+    public void setType(Type type) {
+        this.type = type;
     }
 
     public String getName() {
@@ -31,13 +31,13 @@ public class Field {
 
         Field field = (Field) o;
 
-        if (typeName != null ? !typeName.equals(field.typeName) : field.typeName != null) return false;
+        if (type != null ? !type.equals(field.type) : field.type != null) return false;
         return name != null ? name.equals(field.name) : field.name == null;
     }
 
     @Override
     public int hashCode() {
-        int result = typeName != null ? typeName.hashCode() : 0;
+        int result = type != null ? type.hashCode() : 0;
         result = 31 * result + (name != null ? name.hashCode() : 0);
         return result;
     }
