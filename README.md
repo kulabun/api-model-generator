@@ -53,5 +53,7 @@ public class PersonRequest {
 ```
 
 # Release Notes
+
 0.2.0 - Add generics support
+
 0.1.0 - initial version
