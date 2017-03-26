@@ -11,30 +11,20 @@ It will be better if the request types would update automatically on your persis
 
 ```java
 @RequestEntity
-@Entity
-@Table(name = "person")
 public class Person {
-    @Id
-    @Column(name = "id")
     private UUID id;
 
     @RequestField
-    @Column(name = "first_name")
     private String firstName;
 
     @RequestField
-    @Column(name = "second_name")
     private String lastName;
     
-    @Column(name = "password")
     private String password;
     
     @RequestField
-    @OneToOne
-    @JoinColumn(name = "parent_id")
     private Person parent;
-    
-    @Column(name = "created")
+
     private LocalDateTime ;
     
     ...
