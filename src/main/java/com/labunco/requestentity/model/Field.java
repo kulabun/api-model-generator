@@ -2,7 +2,6 @@ package com.labunco.requestentity.model;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class Field {
     private Type type;

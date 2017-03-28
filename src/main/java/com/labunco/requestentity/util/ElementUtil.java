@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class ElementUtil {
 

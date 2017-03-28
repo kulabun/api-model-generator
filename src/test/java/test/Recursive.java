@@ -5,7 +5,6 @@ import com.labunco.requestentity.annotation.RequestField;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 @RequestEntity
 public class Recursive<T extends Recursive<T>> {

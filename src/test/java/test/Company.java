@@ -7,7 +7,6 @@ import java.util.List;
 
 /**
  * @author kulabun
- * @since 3/16/17
  */
 @RequestEntity
 public class Company {

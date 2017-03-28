@@ -7,7 +7,6 @@ import java.util.concurrent.locks.Lock;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 @RequestEntity
 public class Generic<X, Y extends Lock> {

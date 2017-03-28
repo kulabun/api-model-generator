@@ -18,7 +18,6 @@ import java.util.Set;
 
 /**
  * @author kulabun
- * @since 3/16/17
  */
 @SupportedAnnotationTypes({
         "com.labunco.requestentity.annotation.RequestEntity",
@@ -55,7 +54,7 @@ public class RequestModelProcessor extends AbstractProcessor {
 
     private JavaFileObject getSourceFile(Clazz clazz) {
         try {
-            return processingEnv.getFiler().createSourceFile(clazz.getName().getQualifiedName());
+            return processingEnv.getFiler().createSourceFile(clazz.getType().getQualifiedName());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

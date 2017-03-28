@@ -4,7 +4,6 @@ import java.util.List;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public interface Type {
 

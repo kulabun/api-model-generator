@@ -24,10 +24,24 @@ public class Person {
     
     @RequestField
     private Person parent;
-
-    private LocalDateTime ;
+    
+    @RequestField
+    private List<Person> childs;
+    
+    @RequestLink(fields = "id")
+    private Company company;
+    
+    private LocalDateTime created;
     
     ...
+}
+
+@RequestEntity
+public class Company {
+    private String id;
+    private String name;
+    private String address;
+    private String phone;
 }
 ```
 
@@ -37,12 +51,19 @@ public class PersonRequest {
     private String firstName;
     private String lastName;
     private PersonRequest parent;
-
+    private List<PersonRequest> childs;
+    private CompanyLink company;
+    ...
+    public static class CompanyLink {
+        private String id;
+    }
     ...
 }
 ```
 
 # Release Notes
+
+0.3.0 - Add entity link(projection) support
 
 0.2.0 - Add generics support
 

@@ -10,19 +10,18 @@ import java.util.stream.Collectors;
 
 /**
  * @author kulabun
- * @since 3/26/17
  */
 public class ImportsResolver {
-    
+
     public List<String> resolve(Clazz clazz) {
         Set<String> classes = new HashSet<>();
-        classes.add(clazz.getName().getQualifiedName());
+        classes.add(clazz.getType().getQualifiedName());
         clazz.getFields()
                 .stream()
                 .map(Field::getType)
                 .forEach(it -> fillClasses(it, classes));
 
-        String currentPackage = clazz.getName().getPackageName();
+        String currentPackage = clazz.getType().getPackageName();
         List<String> ignored = Arrays.asList(currentPackage, "java.lang");
 
         return classes.stream()
@@ -40,18 +39,22 @@ public class ImportsResolver {
     private static void fillClasses(Type type, Set<String> classes) {
         if (classes.contains(type.getQualifiedName())) return;
 
-        if (type instanceof TypeDeclared) {
-            TypeDeclared typeDeclared = (TypeDeclared) type;
-            classes.add(typeDeclared.getQualifiedName());
-            typeDeclared.getTypeArgs().forEach(it -> fillClasses(it, classes));
-        } else if (type instanceof TypeVar) {
-            TypeVar typeVar = (TypeVar) type;
-            if (typeVar.getLowerBound() != null)
-                fillClasses(typeVar.getLowerBound(), classes);
-            if (typeVar.getUpperBound() != null)
-                fillClasses(typeVar.getUpperBound(), classes);
-        } else {
-            throw new IllegalArgumentException("Unknown subtype of Type: " + type.getClass().getCanonicalName());
-        }
+        if (type instanceof TypeDeclared)
+            fillClasses((TypeDeclared) type, classes);
+        else if (type instanceof TypeVar) {
+            fillClasses((TypeVar) type, classes);
+        } else throw new IllegalArgumentException("Unknown subtype of Type: " + type.getClass().getCanonicalName());
+    }
+
+    private static void fillClasses(TypeVar type, Set<String> classes) {
+        if (type.getLowerBound() != null)
+            fillClasses(type.getLowerBound(), classes);
+        if (type.getUpperBound() != null)
+            fillClasses(type.getUpperBound(), classes);
+    }
+
+    private static void fillClasses(TypeDeclared type, Set<String> classes) {
+        classes.add(type.getQualifiedName());
+        type.getTypeArgs().forEach(it -> fillClasses(it, classes));
     }
 }

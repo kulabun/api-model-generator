@@ -5,7 +5,6 @@ import java.util.List;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class TypeVar implements Type {
     private String name;

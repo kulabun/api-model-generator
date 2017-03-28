@@ -1,10 +1,10 @@
-package ${clazz.name.packageName};
+package ${clazz.type.packageName};
 
 #foreach($import in $imports)
 import $import;    
 #end
 
-public class ${clazz.name.asStringWithBounds()} {
+public class ${clazz.type.asStringWithBounds()} {
 #foreach($field in $clazz.fields)
     private ${field.type.asString()} ${field.name};
 #end
@@ -17,5 +17,24 @@ public class ${clazz.name.asStringWithBounds()} {
     public void set${StringUtils.capitalizeFirstLetter(${field.name})}(${field.type.asString()} ${field.name}) {
         this.${field.name} = ${field.name};
     }
+#end
+
+#foreach($innerClazz in $clazz.innerClazzes)
+    public static class ${innerClazz.type.asStringWithBounds()} {
+#foreach($field in $innerClazz.fields)
+        private ${field.type.asString()} ${field.name};
+#end
+        
+#foreach($field in $innerClazz.fields)
+        public ${field.type.asString()} get${StringUtils.capitalizeFirstLetter(${field.name})}() {
+            return ${field.name};
+        }
+        
+        public void set${StringUtils.capitalizeFirstLetter(${field.name})}(${field.type.asString()} ${field.name}) {
+            this.${field.name} = ${field.name};
+        }
+#end
+    }
+    
 #end
 }

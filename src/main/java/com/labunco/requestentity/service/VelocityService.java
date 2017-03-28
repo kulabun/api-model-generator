@@ -14,7 +14,6 @@ import java.util.Properties;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class VelocityService {
     private VelocityEngine engine;
@@ -31,6 +30,15 @@ public class VelocityService {
         ctx.put("imports", imports);
         ctx.put("clazz", clazz);
         ctx.put("StringUtils", StringUtils.class);
+        requestEntityTemplate.merge(ctx, writer);
+    }
+
+    public void writeRequestEntity(Writer writer, List<String> imports, Clazz clazz, List<Clazz> linkClazzes) {
+        VelocityContext ctx = new VelocityContext();
+        ctx.put("imports", imports);
+        ctx.put("clazz", clazz);
+        ctx.put("StringUtils", StringUtils.class);
+        ctx.put("linkClazzes", linkClazzes);
         requestEntityTemplate.merge(ctx, writer);
     }
 

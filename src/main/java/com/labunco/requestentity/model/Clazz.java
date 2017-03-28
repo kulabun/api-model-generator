@@ -5,18 +5,18 @@ import java.util.List;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class Clazz {
-    private TypeDeclared name;
+    private TypeDeclared type;
     private List<Field> fields;
+    private List<Clazz> innerClazzes;
 
-    public TypeDeclared getName() {
-        return name;
+    public TypeDeclared getType() {
+        return type;
     }
 
-    public void setName(TypeDeclared name) {
-        this.name = name;
+    public void setType(TypeDeclared type) {
+        this.type = type;
     }
 
     public List<Field> getFields() {
@@ -27,6 +27,14 @@ public class Clazz {
         this.fields = fields;
     }
 
+    public List<Clazz> getInnerClazzes() {
+        return innerClazzes;
+    }
+
+    public void setInnerClazzes(List<Clazz> innerClazzes) {
+        this.innerClazzes = innerClazzes;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -34,13 +42,13 @@ public class Clazz {
 
         Clazz clazz = (Clazz) o;
 
-        if (name != null ? !name.equals(clazz.name) : clazz.name != null) return false;
+        if (type != null ? !type.equals(clazz.type) : clazz.type != null) return false;
         return fields != null ? fields.equals(clazz.fields) : clazz.fields == null;
     }
 
     @Override
     public int hashCode() {
-        int result = name != null ? name.hashCode() : 0;
+        int result = type != null ? type.hashCode() : 0;
         result = 31 * result + (fields != null ? fields.hashCode() : 0);
         return result;
     }

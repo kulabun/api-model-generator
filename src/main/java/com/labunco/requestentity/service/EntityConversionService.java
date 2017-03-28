@@ -2,16 +2,18 @@ package com.labunco.requestentity.service;
 
 import com.labunco.requestentity.annotation.RequestEntity;
 import com.labunco.requestentity.annotation.RequestField;
+import com.labunco.requestentity.annotation.RequestLink;
 import com.labunco.requestentity.model.*;
-import org.apache.commons.collections.CollectionUtils;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,117 +21,169 @@ import static com.labunco.requestentity.util.ElementUtil.*;
 
 /**
  * @author kulabun
- * @since 3/25/17
  */
 public class EntityConversionService {
+
     public Clazz toClazz(TypeElement element) {
         Clazz clazz = new Clazz();
-        TypeDeclared typeDeclared = (TypeDeclared) toType(element);
-        clazz.setName(typeDeclared);
-
-        List<Field> fields = extractTypeFields(element);
-        clazz.setFields(fields);
+        clazz.setType((TypeDeclared) resolveType(element.asType()));
+        clazz.setFields(extractFields(element));
+        clazz.setInnerClazzes(extractLinkEntities(element));
         return clazz;
     }
 
-    private Type toType(TypeVariable typeVariable) {
-        return toType(typeVariable, new LinkedList<>());
+    private List<Clazz> extractLinkEntities(TypeElement element) {
+        return filterByAnnotation(getFields(element), RequestLink.class).stream()
+                .map(this::createInnerClazz)
+                .collect(Collectors.toList());
     }
 
-    private Type toType(TypeVariable typeVariable, Deque<Type> stack) {
+    private Clazz createInnerClazz(Element requestLinkField) {
+        TypeDeclared type = new TypeDeclared();
+        TypeElement fieldTypeElement = (TypeElement) ((DeclaredType) requestLinkField.asType()).asElement();
+        type.setPackageName(extractPackageName(fieldTypeElement));
+
+        RequestLink annotation = requestLinkField.getAnnotation(RequestLink.class);
+        TypeElement targetElement = fieldTypeElement;
+        TypeDeclared fieldType = (TypeDeclared) resolveType(requestLinkField.asType(), new Context(annotation));
+        if (!hasAnnotation(fieldTypeElement, RequestEntity.class)) {
+            DeclaredType typeArgument = ((DeclaredType) requestLinkField.asType())
+                    .getTypeArguments().stream()
+                    .filter(it -> it instanceof DeclaredType)
+                    .map(it -> (DeclaredType) it)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Failed to resolve inner class for " +
+                            requestLinkField.getEnclosingElement().asType().toString() + "."
+                            + requestLinkField.getSimpleName().toString()));
+
+            fieldType = (TypeDeclared) resolveType(typeArgument, new Context(annotation));
+            targetElement = (TypeElement) typeArgument.asElement();
+        }
+
+        Clazz resultClazz = new Clazz();
+        resultClazz.setType(fieldType);
+        List<String> fieldNames = Arrays.asList(annotation.fields());
+        resultClazz.setFields(getFields(targetElement).stream()
+                .filter(it -> fieldNames.contains(it.getSimpleName().toString()))
+                .map(it -> toField((VariableElement) it))
+                .collect(Collectors.toList()));
+        resultClazz.setInnerClazzes(extractLinkEntities(targetElement));
+        return resultClazz;
+    }
+
+    private Type toType(TypeVariable typeVariable, Context ctx) {
         TypeVar typeVar = new TypeVar();
         String typeName = typeVariable.asElement().getSimpleName().toString();
         typeVar.setName(typeName);
 
-        if (stack.stream().anyMatch(it -> it.getQualifiedName().equals(typeName))) {
+        if (ctx.existsInStack(typeVar)) {
             return typeVar;
         }
 
         if (!typeVariable.getLowerBound().getKind().equals(TypeKind.NULL)) {
-            stack.add(typeVar);
-            typeVar.setLowerBound(resolveType(typeVariable.getLowerBound(), stack));
+            ctx.pushToStack(typeVar);
+            typeVar.setLowerBound(resolveType(typeVariable.getLowerBound(), ctx));
         }
 
         if (!typeVariable.getUpperBound().getKind().equals(TypeKind.NULL)) {
-            stack.add(typeVar);
-            typeVar.setUpperBound(resolveType(typeVariable.getUpperBound(), stack));
+            ctx.pushToStack(typeVar);
+            typeVar.setUpperBound(resolveType(typeVariable.getUpperBound(), ctx));
         }
 
         return typeVar;
     }
 
-    private List<Field> extractTypeFields(Element element) {
-        return getRequestParameters(element)
+    private List<Field> extractFields(Element element) {
+        return getFields(element)
                 .stream()
-                .map(this::toField)
+                .filter(it -> hasAnnotation(it, RequestField.class)
+                        || hasAnnotation(it, RequestLink.class))
+                .map(it -> toField((VariableElement) it))
                 .collect(Collectors.toList());
     }
 
-    public Field toField(Element element) {
-        if (!element.getKind().isField())
-            throw new IllegalArgumentException("Element of kind Field expected, got " + element.getKind());
+    public Field toField(VariableElement element) {
+        RequestLink annotation = element.getAnnotation(RequestLink.class);
 
         Field field = new Field();
-        field.setType(toType(element));
+        if (annotation != null) {
+            field.setType(resolveType(element.asType(), new Context(annotation)));
+        } else {
+            field.setType(resolveType(element.asType()));
+        }
         field.setName(element.getSimpleName().toString());
         return field;
     }
 
+    private Type resolveType(TypeMirror type) {
+        return resolveType(type, new Context());
+    }
 
-    private Type toType(Element element) {
-        if (element.asType() instanceof DeclaredType) {
-            return toType((DeclaredType) element.asType());
-        } else if (element.asType() instanceof TypeVariable) {
-            return toType((TypeVariable) element.asType());
+    private Type resolveType(TypeMirror type, Context ctx) {
+        if (type instanceof DeclaredType)
+            return toType((DeclaredType) type, ctx);
+        else if (type instanceof TypeVariable) {
+            return toType((TypeVariable) type, ctx);
         }
-        throw new RuntimeException("Unknown type:" + element.getClass().getCanonicalName()
-                + " ,kind: " + element.getKind());
+        throw new RuntimeException("Unknown type:" + type.getClass().getCanonicalName()
+                + " ,kind: " + type.getKind());
     }
 
-    private Type toType(DeclaredType declaredType) {
-        return toType(declaredType, new LinkedList<>());
-    }
-
-    private TypeDeclared toType(DeclaredType declaredType, Deque<Type> stack) {
+    private TypeDeclared toType(DeclaredType declaredType, Context ctx) {
         TypeElement typeElement = (TypeElement) declaredType.asElement();
 
-        RequestEntity annotation = typeElement.getAnnotation(RequestEntity.class);
-        String prefix = annotation != null ? annotation.prefix() : "";
-        String postfix = annotation != null ? annotation.postfix() : "";
+        String typeName = typeElement.getSimpleName().toString();
+        if (hasAnnotation(typeElement, RequestEntity.class))
+            typeName = ctx.getAnnotation(RequestLink.class)
+                    .map(it -> it.prefix() + typeElement.getSimpleName() + it.postfix())
+                    .orElseGet(() -> {
+                        RequestEntity annotation = typeElement.getAnnotation(RequestEntity.class);
+                        String prefix = annotation != null ? annotation.prefix() : "";
+                        String postfix = annotation != null ? annotation.postfix() : "";
+
+                        return prefix + typeElement.getSimpleName() + postfix;
+                    });
 
         TypeDeclared typeDeclared = new TypeDeclared();
         typeDeclared.setPackageName(extractPackageName(typeElement));
-        typeDeclared.setName(prefix + typeElement.getSimpleName() + postfix);
-        typeDeclared.setTypeArgs(extractTypeArguments(declaredType, typeDeclared, stack));
+        typeDeclared.setName(typeName);
+        typeDeclared.setTypeArgs(extractTypeArguments(declaredType, typeDeclared, ctx));
         return typeDeclared;
     }
 
     private List<Type> extractTypeArguments(DeclaredType declaredType,
                                             TypeDeclared typeDeclared,
-                                            Deque<Type> stack) {
-        List<? extends TypeMirror> typeArguments = declaredType.getTypeArguments();
-
-        return CollectionUtils.isNotEmpty(typeArguments) ?
-                typeArguments.stream()
-                        .map(it -> it.equals(declaredType) ? typeDeclared : resolveType(it, stack))
-                        .collect(Collectors.toList()) :
-                Collections.emptyList();
+                                            Context ctx) {
+        return declaredType.getTypeArguments().stream()
+                .map(it -> it.equals(declaredType) ? typeDeclared : resolveType(it, ctx))
+                .collect(Collectors.toList());
     }
 
-    private Type resolveType(TypeMirror type, Deque<Type> stack) {
-        if (type instanceof DeclaredType)
-            return toType((DeclaredType) type, stack);
-        else if (type instanceof TypeVariable) {
-            TypeVariable typeVar = (TypeVariable) type;
-            return toType(typeVar, stack);
-        } else {
-            throw new RuntimeException("Unknown type:" + type.getClass().getCanonicalName()
-                    + " ,kind: " + type.getKind());
+    private Set<? extends Element> getFields(Element targetClass) {
+        return filterByKind(targetClass.getEnclosedElements(), ElementKind.FIELD);
+    }
+
+    private static class Context {
+        private List<String> stack;
+        private List<Annotation> annotations;
+
+        public Context(Annotation... annotations) {
+            this.annotations = annotations.length > 0 ? Arrays.asList(annotations) : Collections.emptyList();
+            this.stack = new ArrayList<>();
         }
-    }
 
-    private Set<? extends Element> getRequestParameters(Element targetClass) {
-        Set<? extends Element> fields = filterByKind(targetClass.getEnclosedElements(), ElementKind.FIELD);
-        return filterByAnnotation(fields, RequestField.class);
+        public boolean existsInStack(Type type) {
+            return stack.contains(type.getQualifiedName());
+        }
+
+        public void pushToStack(Type type) {
+            stack.add(type.getQualifiedName());
+        }
+
+        public <T extends Annotation> Optional<T> getAnnotation(Class<T> annotation) {
+            return (Optional<T>) annotations.stream()
+                    .filter(it -> it.annotationType().equals(annotation))
+                    .findFirst();
+        }
     }
 }
