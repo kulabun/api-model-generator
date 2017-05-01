@@ -1,4 +1,4 @@
-package com.labunco.requestentity.annotation;
+package com.labunco.apimodelgenerator.annotation;
 
 import java.lang.annotation.*;
 
@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
 @Documented
-public @interface RequestEntity {
+public @interface GenerateApiModel {
     String prefix() default "";
-    String postfix() default "Request";
+    String postfix() default "Model";
 }

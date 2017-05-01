@@ -1,11 +1,8 @@
 package test;
 
-import com.labunco.requestentity.annotation.RequestEntity;
+import com.labunco.apimodelgenerator.annotation.GenerateApiModel;
 
-/**
- * @author kulabun
- */
-@RequestEntity
+@GenerateApiModel
 public class Currency {
     private String code;
     private String id;

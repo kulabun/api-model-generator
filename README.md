@@ -1,67 +1,84 @@
-# Request-Entity
-Project presents a set of annotations and annotation processor to generate request-entities from your persistence entities.
-Generated Request Entities are truncated versions of your persistence entities used to limit input from REST API clients.
+# api-model-generator
+Project presents a set of annotations and annotation processor to generate api-model-entities from your persistence entities.
+Generated models are truncated versions of your persistence entities used to limit input from REST API clients.
 
 # Example
 Lets imagine we have the following type. We want to use model-model(symmetric request/responses model) in out REST API, 
 but we want to make some fields read-only. One of approach is simply ignore it in your code, but it means that you have 
 to always keep in your mind what field you could change and which not. Better approach is to use different types for your
-request and persistence entities. Creating such types and supporting them throughout the life of the project can be quite costly. 
+request models and persistence entities. Creating such types and supporting them throughout the life of the project can be quite costly. 
 It will be better if the request types would update automatically on your persistence type update. 
 
 ```java
-@RequestEntity
+@GenerateApiModel
 public class Person {
     private UUID id;
 
-    @RequestField
+    @ApiField
     private String firstName;
 
-    @RequestField
+    @ApiField
     private String lastName;
     
     private String password;
     
-    @RequestField
-    private Person parent;
-    
-    @RequestField
-    private List<Person> childs;
-    
-    @RequestLink(fields = "id")
+    @ApiField(type = ApiField.Type.Reference, referenceModel = @ApiField.Model(fields = "id"))
     private Company company;
     
     private LocalDateTime created;
     
     ...
 }
-
-@RequestEntity
-public class Company {
-    private String id;
-    private String name;
-    private String address;
-    private String phone;
-}
 ```
 
 Generated request entity
 ```java
-public class PersonRequest {
+public class PersonModel {
     private String firstName;
     private String lastName;
-    private PersonRequest parent;
-    private List<PersonRequest> childs;
-    private CompanyLink company;
-    ...
-    public static class CompanyLink {
-        private String id;
+    private CompanyModel company;
+    
+    public String getFirstName() {
+        return firstName;
     }
-    ...
+    
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    
+    public String getLastName() {
+        return lastName;
+    }
+        
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+    
+    public CompanyModel getCompany() {
+        return company;
+    }
+            
+    public void setCompany(CompanyModel company) {
+        this.company = company;
+    }
+    
+    public static class CompanyModel {
+        private String id;
+        
+        public String getId() {
+            return id;
+        }
+        
+        public void setId(String id) {
+            this.id = id;
+        }
+    }
 }
 ```
 
 # Release Notes
+
+1.0.0 - rethinking use cases && fully rewrited on javapoem instead of velocity template compiling. 
 
 0.3.0 - Add entity link(projection) support
 
