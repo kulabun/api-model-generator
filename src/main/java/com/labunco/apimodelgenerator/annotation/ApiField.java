@@ -18,6 +18,7 @@ public @interface ApiField {
     @interface Model {
         String prefix() default "";
         String postfix() default "Model";
+        Class<?> targetClass() default Void.class;
         String[] fields();
     }
     

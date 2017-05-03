@@ -1,7 +1,14 @@
 package com.labunco.apimodelgenerator;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.TypeSpec;
+import com.labunco.apimodelgenerator.annotation.ApiField;
+import com.squareup.javapoet.*;
+
+import javax.lang.model.element.Element;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author kulabun

@@ -52,6 +52,18 @@ public class ApiModelGeneratorTest {
                 .and().generatesSources(generatedModel);
     }
 
+    @Test
+    public void successModelList() {
+        JavaFileObject currenySource = loadResource("test/Group.java");
+        JavaFileObject generatedModel = loadResource("test/GroupModel.java");
+
+        Truth.assertAbout(javaSource())
+                .that(currenySource)
+                .processedWith(new RequestModelProcessor())
+                .compilesWithoutError()
+                .and().generatesSources(generatedModel);
+    }
+
     private JavaFileObject loadResource(String resourceName) {
         return JavaFileObjects.forResource(resourceName);
     }

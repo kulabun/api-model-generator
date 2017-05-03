@@ -31,7 +31,7 @@ public class Person {
 }
 ```
 
-Generated request entity
+Generated model
 ```java
 public class PersonModel {
     private String firstName;
@@ -77,6 +77,8 @@ public class PersonModel {
 ```
 
 # Release Notes
+
+1.1.0 - add generics support
 
 1.0.0 - rethinking use cases && fully rewrited on javapoem instead of velocity template compiling. 
 

@@ -4,9 +4,11 @@ import com.google.auto.service.AutoService;
 import com.labunco.apimodelgenerator.annotation.ApiField;
 import com.labunco.apimodelgenerator.annotation.GenerateApiModel;
 import com.squareup.javapoet.*;
+import com.sun.tools.javac.code.Type;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -32,12 +34,14 @@ public class RequestModelProcessor extends AbstractProcessor {
     private Messager messager;
     private Types types;
     private Elements elements;
+    private AnnotationMirrorHelper annotationMirrorHelper;
 
     @Override
     public void init(ProcessingEnvironment env) {
         messager = env.getMessager();
         types = env.getTypeUtils();
         elements = env.getElementUtils();
+        annotationMirrorHelper = new AnnotationMirrorHelper(types, elements);
         super.init(env);
     }
 
@@ -106,13 +110,18 @@ public class RequestModelProcessor extends AbstractProcessor {
         return str.length() == 0 ? str : Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 
-    private ClassName generateApiFieldModel(Element element, GenerationContext ctx) {
+    private <T extends TypeName> T generateApiFieldModel(Element element, GenerationContext ctx) {
         ApiField.Model model = element.getAnnotation(ApiField.class).referenceModel();
-        ClassName className = getApiFieldModelClassName(element, ctx, model);
+        TypeName className = getApiFieldModelClassName(element, ctx, model);
         assertIsDeclaredType(element);
+        return (T) className;
+    }
 
-        Element typeElement = types.asElement(element.asType());
-        List<FieldSpec> fields = createTypeFields(typeElement, model.fields());
+    private void createInnerType(GenerationContext ctx, 
+                                 ClassName className, 
+                                 TypeElement element,
+                                 String... fieldNames) {
+        List<FieldSpec> fields = createTypeFields(element, fieldNames);
 
         List<MethodSpec> methods = fields.stream()
                 .map(it -> createGetterSetter(it))
@@ -124,9 +133,7 @@ public class RequestModelProcessor extends AbstractProcessor {
                 .addFields(fields)
                 .addMethods(methods)
                 .build();
-
         ctx.getTypeSpec().addType(type);
-        return className;
     }
 
     private void assertIsDeclaredType(Element element) {
@@ -139,11 +146,43 @@ public class RequestModelProcessor extends AbstractProcessor {
             throw new IllegalArgumentException("Field element expected");
     }
 
-    private ClassName getApiFieldModelClassName(Element element, GenerationContext ctx,
-                                                ApiField.Model model) {
-        ClassName fieldClassName = (ClassName) ClassName.get(element.asType());
-        String classSimpleName = model.prefix() + fieldClassName.simpleName() + model.postfix();
-        return ClassName.get(ctx.getClassPackageName(), ctx.getClassSimpleName(), classSimpleName);
+    private TypeName getApiFieldModelClassName(Element element, GenerationContext ctx,
+                                               ApiField.Model model) {
+        TypeName typeName = ClassName.get(element.asType());
+
+        if (typeName instanceof ClassName) {
+            ClassName fieldClassName = (ClassName) typeName;
+
+            String classSimpleName = model.prefix() + fieldClassName.simpleName() + model.postfix();
+            ClassName className = ClassName.get(ctx.getClassPackageName(), ctx.getClassSimpleName(), classSimpleName);
+            
+            TypeElement typeElement = (TypeElement) types.asElement(element.asType());
+            createInnerType(ctx, className, typeElement, model.fields());
+            return className;
+        }
+        if (typeName instanceof ParameterizedTypeName) {
+            AnnotationMirror modelMirror = annotationMirrorHelper.getAnnotationFieldValue(element, ApiField.class, "referenceModel");
+            Type.ClassType targetClass = annotationMirrorHelper.getFieldValue(modelMirror, "targetClass");
+            String targetClassName = targetClass.asElement().getQualifiedName().toString();
+
+            ParameterizedTypeName parameterizedTypeName = (ParameterizedTypeName) typeName;
+            List<TypeName> typeArguments = parameterizedTypeName.typeArguments;
+            List<TypeName> updatedTypeArguments = typeArguments.stream()
+                    .map(it -> {
+                        ClassName className = (ClassName) it;
+                        if (targetClassName.equals(className.reflectionName())) {
+                            String classSimpleName = model.prefix() + className.simpleName() + model.postfix();
+                            ClassName modelClassName = ClassName.get(ctx.getClassPackageName(), ctx.getClassSimpleName(), classSimpleName);
+                            TypeElement typeElement = elements.getTypeElement(className.reflectionName());
+                            createInnerType(ctx, modelClassName, typeElement, model.fields());
+                            return modelClassName;
+                        }
+                        return it;
+                    }).collect(Collectors.toList());
+            ParameterizedTypeName result = ParameterizedTypeName.get(parameterizedTypeName.rawType, updatedTypeArguments.toArray(new TypeName[updatedTypeArguments.size()]));
+            return result;
+        }
+        return null;
     }
 
     private List<FieldSpec> createTypeFields(Element typeElement, String... fields) {
@@ -168,7 +207,7 @@ public class RequestModelProcessor extends AbstractProcessor {
             case Value:
                 return createField(element, TypeName.get(element.asType()));
             case Reference:
-                ClassName modelClassName = generateApiFieldModel(element, ctx);
+                TypeName modelClassName = generateApiFieldModel(element, ctx);
                 return createField(element, modelClassName);
             default:
                 String msg = String.format("Unsupported ApiField.type value: %s", annotation.type());
